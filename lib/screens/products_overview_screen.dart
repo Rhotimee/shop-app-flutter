@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/products.dart';
 import '../widgets/app_drawer.dart';
 import '../providers/cart.dart';
 import '../widgets/badge.dart';
@@ -16,11 +17,53 @@ class ProductOverviewScreen extends StatefulWidget {
 
 class _ProductOverviewScreenState extends State<ProductOverviewScreen> {
   var _showOnlyFavorites = false;
+  var _isInit = true;
+  var _isLoading = false;
+
+  Future<void> _refreshProducts(BuildContext context) async {
+    await Provider.of<Products>(context, listen: false).fetchAndSetProducts();
+  }
+
+  // @override
+  // void initState() {
+  //   try {
+  //     Provider.of<Products>(context, listen: false).fetchAndSetProducts();
+  //   } catch (e) {
+  //     print(e);
+  //   }
+  //   super.initState();
+  // }
+
+  @override
+  void didChangeDependencies() {
+    if (_isInit) {
+      try {
+        setState(() {
+          _isLoading = true;
+        });
+        Provider.of<Products>(context).fetchAndSetProducts().then((_) => {
+              setState(() {
+                _isLoading = false;
+              })
+            });
+      } catch (e) {
+        print(e);
+      }
+    }
+
+    _isInit = false;
+
+    super.didChangeDependencies();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ProductGrid(_showOnlyFavorites),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: () => _refreshProducts(context),
+              child: ProductGrid(_showOnlyFavorites)),
       appBar: AppBar(
         title: const Text("My Shop"),
         actions: <Widget>[
